@@ -4,6 +4,7 @@ use axum::{routing::get, AddExtensionLayer, Router};
 
 mod handler;
 mod model;
+mod distribution;
 
 #[tokio::main]
 async fn main() {
