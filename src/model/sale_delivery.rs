@@ -4,6 +4,7 @@ use tiberius::{numeric::Decimal, time::chrono::NaiveDateTime, Row};
 use super::AppState;
 use super::Code;
 use super::Warehouse;
+use crate::utils::code_prefix;
 
 #[derive(Serialize)]
 pub struct SaleDeliveryB {
@@ -103,7 +104,7 @@ impl SaleDelivery {
             FROM 
                 SA_SaleDelivery 
             WHERE 
-                DateDiff(dd,voucherdate ,getdate())=(@P1) 
+                DateDiff(dd,voucherdate, getdate())=(@P1) 
                 AND idbusinesstype = 65 
                 AND (idwarehouse = 36 OR idwarehouse = 6)"#;
         let count = conn
@@ -193,6 +194,31 @@ impl SaleDelivery {
         let r = conn.query(sql, &[&code]).await?.into_row().await?.unwrap();
 
         Ok(Self::from_row(&r))
+    }
+
+    pub async fn get_undistributed_codes(state: &AppState) -> anyhow::Result<Vec<String>> {
+        let sql = r#"
+            SELECT code 
+            FROM SA_SaleDelivery 
+            WHERE (code like (@P1)) AND 
+                code NOT IN (select sourcevouchercode 
+                    FROM DI_Distribution_b 
+                    WHERE sourcevouchercode like (@P2) GROUP BY sourcevouchercode);"#;
+
+        let mut conn = state.mssql_pool.get().await?;
+
+        let code = code_prefix();
+
+        let r = conn
+            .query(sql, &[&code, &code])
+            .await?
+            .into_first_result()
+            .await?
+            .iter()
+            .map(|f| f.get::<&str, _>(0).unwrap().to_string())
+            .collect::<Vec<String>>();
+
+        Ok(r)
     }
 }
 

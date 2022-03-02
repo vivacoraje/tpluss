@@ -1,5 +1,3 @@
-
-
 #[derive(Debug, PartialEq, Eq, Hash)]
 struct Warehouse(String);
 
@@ -11,7 +9,6 @@ struct Customer(String);
 
 #[derive(Debug)]
 struct Inventory(String, u32);
-
 
 #[derive(Debug)]
 struct Form {
@@ -55,7 +52,6 @@ impl Pool {
         });
         self.quantity_inventory = self.invs.values().sum();
     }
-
 }
 
 use std::collections::HashMap;
@@ -77,13 +73,12 @@ impl GroupPools {
     }
 
     fn register_warehouse(&mut self, w: &str) {
-        self.pools.iter_mut().for_each(|(_, v) | {
+        self.pools.iter_mut().for_each(|(_, v)| {
             v.insert(Warehouse(w.into()), Pool::new(w));
         });
     }
 
     fn add(&mut self, f: Form) {
-        
         if let Some(v) = self.pools.get_mut(&f.region) {
             if let Some(p) = v.get_mut(&f.warehouse) {
                 p.add(f);

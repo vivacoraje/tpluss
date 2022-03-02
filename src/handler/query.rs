@@ -7,7 +7,9 @@ use crate::model::distribution::get_deliverer_by_code;
 use crate::model::sale_delivery::OrderForm;
 use crate::model::sale_delivery::OrderFormStatus;
 use crate::model::sale_delivery::SaleDelivery;
+
 use crate::model::AppState;
+
 
 pub async fn count(Extension(state): Extension<AppState>) -> Json<Value> {
     let c = SaleDelivery::get_count_by_diff(&state, 0).await.unwrap();
@@ -49,4 +51,10 @@ pub async fn order_form_status(
         .await
         .unwrap();
     Json(serde_json::json!(status))
+}
+
+
+pub async fn undistributed_codes(Extension(state): Extension<AppState>) -> Json<Value> {
+    let codes = SaleDelivery::get_undistributed_codes(&state).await.unwrap();
+    Json(serde_json::json!(codes))
 }

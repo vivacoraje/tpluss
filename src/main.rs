@@ -2,9 +2,10 @@ use std::{net::SocketAddr, str::FromStr};
 
 use axum::{routing::get, AddExtensionLayer, Router};
 
+mod distribution;
 mod handler;
 mod model;
-mod distribution;
+mod utils;
 
 #[tokio::main]
 async fn main() {
@@ -24,6 +25,7 @@ async fn main() {
             "/orderform/status/:code",
             get(handler::query::order_form_status),
         )
+        .route("/undistributed", get(handler::query::undistributed_codes))
         .layer(AddExtensionLayer::new(state));
 
     let addr = SocketAddr::from_str("0.0.0.0:3000").unwrap();
