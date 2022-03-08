@@ -59,8 +59,8 @@ impl SaleDeliveryB {
 #[derive(Serialize)]
 pub struct SaleDelivery {
     id: i32,
-    code: Code,
-    customer: String,
+    pub code: Code,
+    pub customer: String,
     phone: Option<String>,
     warehouse: Warehouse,
     is_saleout: i32,
@@ -73,6 +73,7 @@ pub struct SaleDelivery {
     voucher_date: NaiveDateTime,
     created_time: NaiveDateTime,
     updated_time: NaiveDateTime,
+    clerk: Option<String>,
 }
 
 impl SaleDelivery {
@@ -93,6 +94,7 @@ impl SaleDelivery {
             voucher_date: r.get::<NaiveDateTime, _>(12).unwrap(),
             created_time: r.get::<NaiveDateTime, _>(13).unwrap(),
             updated_time: r.get::<NaiveDateTime, _>(14).unwrap(),
+            clerk: r.get::<&str, _>(15).and_then(|p| Some(String::from(p))),
         }
     }
 
@@ -105,8 +107,8 @@ impl SaleDelivery {
                 SA_SaleDelivery 
             WHERE 
                 DateDiff(dd,voucherdate, getdate())=(@P1) 
-                AND idbusinesstype = 65 
-                AND (idwarehouse = 36 OR idwarehouse = 6)"#;
+                AND idbusinesstype = 65"#;
+                //AND (idwarehouse = 36 OR idwarehouse = 6)"#;
         let count = conn
             .query(sql_str, &[&diff])
             .await?
@@ -124,15 +126,16 @@ impl SaleDelivery {
         let sql = r#"
             SELECT 
                 sd.id, sd.code, 
-                p.name AS customer, sd.CustomerPhone, 
+                p.name AS customer, sd.CustomerPhone AS phone, 
                 wh.name AS warehouse,  
                 sd.voucherState, sd.isSaleOut, sd.isCancel, 
-                sd.maker, 
+                sd.maker,           
                 sd.amount, sd.memo, sd.PrintCount, 
-                sd.voucherdate, sd.createdtime, sd.updated
+                sd.voucherdate, sd.createdtime, sd.updated,
+                ap.name AS clerk
             FROM 
-                ((SA_SaleDelivery AS sd JOIN AA_Warehouse AS wh ON sd.idwarehouse=wh.id) 
-                JOIN AA_Partner AS p ON sd.idcustomer=p.id) 
+                (((SA_SaleDelivery AS sd JOIN AA_Warehouse AS wh ON sd.idwarehouse=wh.id) 
+                JOIN AA_Partner AS p ON sd.idcustomer=p.id) JOIN AA_Person AS ap ON sd.idclerk = ap.id)
             WHERE DateDiff(dd, voucherdate, getdate())=(@P1) AND sd.idbusinesstype=65
         "#;
 
@@ -200,7 +203,8 @@ impl SaleDelivery {
         let sql = r#"
             SELECT code 
             FROM SA_SaleDelivery 
-            WHERE (code like (@P1)) AND 
+            WHERE (code like (@P1)) AND
+                idbusinesstype=65 AND
                 code NOT IN (select sourcevouchercode 
                     FROM DI_Distribution_b 
                     WHERE sourcevouchercode like (@P2) GROUP BY sourcevouchercode);"#;
@@ -249,10 +253,10 @@ impl OrderFormStatus {
         let delivery = super::distribution::get_deliverer_by_code(state, code).await?;
         let sd = SaleDelivery::get_sale_delivery_by_code(state, code).await?;
 
-        let status = if delivery == "未分配".to_string() {
+        let status = if delivery == None {
             super::OrderFormStatus::Created(super::Executor::Spawn(sd.maker.clone()))
         } else {
-            super::OrderFormStatus::Distributed(super::Executor::Deliverer(delivery))
+            super::OrderFormStatus::Distributed(super::Executor::Deliverer(delivery.unwrap()))
         };
 
         Ok(Self {

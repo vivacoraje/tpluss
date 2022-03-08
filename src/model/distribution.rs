@@ -1,6 +1,6 @@
 use super::AppState;
 
-pub async fn get_deliverer_by_code(state: &AppState, code: &str) -> anyhow::Result<String> {
+pub async fn get_deliverer_by_code(state: &AppState, code: &str) -> anyhow::Result<Option<String>> {
     let sql = r#"
         SELECT 
             d.pubuserdefnvc1 
@@ -11,14 +11,26 @@ pub async fn get_deliverer_by_code(state: &AppState, code: &str) -> anyhow::Resu
     "#;
     let code = code.to_string();
     let mut conn = state.mssql_pool.get().await?;
-    let d = conn
+    // let d = conn
+    //     .query(sql, &[&code])
+    //     .await?
+    //     .into_row()
+    //     .await?
+    //     .unwrap()
+    //     .get::<&str, _>(0)
+    //     .and_then(|f| Some(String::from(f)));
+    //     //.unwrap()
+    //     //.to_string();
+    let d = match conn
         .query(sql, &[&code])
         .await?
         .into_row()
-        .await?
-        .unwrap()
-        .get::<&str, _>(0)
-        .unwrap()
-        .to_string();
+        .await? {
+            Some(r) => {
+                r.get::<&str, _>(0).and_then(|f| Some(String::from(f)))
+            },
+            None => None,
+        };
+    
     Ok(d)
 }

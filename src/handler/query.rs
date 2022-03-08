@@ -7,6 +7,7 @@ use crate::model::distribution::get_deliverer_by_code;
 use crate::model::sale_delivery::OrderForm;
 use crate::model::sale_delivery::OrderFormStatus;
 use crate::model::sale_delivery::SaleDelivery;
+use crate::model::Code;
 
 use crate::model::AppState;
 
@@ -39,8 +40,8 @@ pub async fn order_form(
 pub async fn delivery(Extension(state): Extension<AppState>, Path(code): Path<String>) -> String {
     get_deliverer_by_code(&state, code.as_str())
         .await
+        .unwrap_or(Some("未分配".into()))
         .unwrap_or("未分配".into())
-        .to_string()
 }
 
 pub async fn order_form_status(
@@ -57,4 +58,18 @@ pub async fn order_form_status(
 pub async fn undistributed_codes(Extension(state): Extension<AppState>) -> Json<Value> {
     let codes = SaleDelivery::get_undistributed_codes(&state).await.unwrap();
     Json(serde_json::json!(codes))
+}
+
+pub async fn search_customer_sds(Extension(state): Extension<AppState>, Path(customer): Path<String>) -> Json<Value> {
+    let sds = SaleDelivery::get_sale_deliveries(&state, 0).await.unwrap().iter().filter(|f| f.customer == customer).collect::<Vec<_>>();
+    let mut ofs: Vec<OrderForm> = vec![];
+    for sd in sds {
+        match sd.code {
+            Code::SaleDelivery(code) => {
+                let of = OrderForm::get_by_code(&state, &code).await.unwrap();
+                &ofs.push(of);
+            }
+        }
+    }
+    Json(serde_json::json!(ofs))
 }

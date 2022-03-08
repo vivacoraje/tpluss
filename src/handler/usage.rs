@@ -9,7 +9,8 @@ pub async fn usage<'a>() -> Json<Value> {
         - GET /unaudited -- 获取当日所有未审核订单
         - GET /delivery/{code} -- 查询订单送货人
         - GET /orderform/status/{code}
-        - GET /undistributed -- 获取未分配订单单据编号
+        - GET /undistributed -- 获取未生成配货单的销货单单据编号
+        - GET /search/sds/{customer_name} -- 查询客户当日订单
     "#;
     let data: Vec<&str> = data
         .split('\n')
