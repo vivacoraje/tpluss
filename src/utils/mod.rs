@@ -2,7 +2,7 @@ use chrono::prelude::*;
 use chrono::Duration;
 
 pub fn code_prefix() -> String {
-    let today_last_datetime = Local::now().date().to_string() + " 16:00:00";
+    let today_last_datetime = Local::now().date().to_string() + " 17:00:00";
     let flag_dt =
         DateTime::parse_from_str(today_last_datetime.as_str(), "%Y-%m-%d%z %H:%M:%S").unwrap();
     let flag_tt = flag_dt.timestamp();
@@ -21,7 +21,7 @@ pub fn code_prefix() -> String {
 }
 
 fn flag_tt() -> (DateTime<FixedOffset>, i64) {
-    let today_last_datetime = Local::now().date().to_string() + " 16:00:00";
+    let today_last_datetime = Local::now().date().to_string() + " 17:00:00";
     let flag_dt =
         DateTime::parse_from_str(today_last_datetime.as_str(), "%Y-%m-%d%z %H:%M:%S").unwrap();
     (flag_dt, flag_dt.timestamp())
@@ -32,13 +32,12 @@ fn current_tt() -> i64 {
     current.timestamp()
 }
 
-
-pub fn diff() -> u8 {
+pub fn diff() -> i32 {
     let (_, flag_tt) = flag_tt();
     if current_tt() > flag_tt {
-        1u8
+        -1
     } else {
-        0u8
+        0
     }
 }
 

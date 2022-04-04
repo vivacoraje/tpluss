@@ -1,87 +1,103 @@
-#[derive(Debug, PartialEq, Eq, Hash)]
-struct Warehouse(String);
+use serde::Serialize;
+use std::collections::HashMap;
+use tiberius::numeric::Decimal;
 
-#[derive(Debug, PartialEq, Eq, Hash)]
-struct Region(String);
+use crate::model::sale_delivery::OrderForm;
+use crate::model::{Code, Region, Warehouse};
 
-#[derive(Debug, PartialEq, Eq)]
-struct Customer(String);
-
-#[derive(Debug)]
-struct Inventory(String, u32);
-
-#[derive(Debug)]
-struct Form {
-    customer: Customer,
-    region: Region,
-    warehouse: Warehouse,
-    inventories: Vec<Inventory>,
-}
-
-#[derive(Debug)]
+#[derive(Debug, Serialize, Clone)]
 struct Pool {
-    warehouse: Warehouse,
-    customers: Vec<Customer>,
-    inventories: Vec<Inventory>,
-    invs: HashMap<String, u32>,
-    quantity_customer: u32,
+    codes: Vec<Code>,
+    customers: Vec<String>,
+    inventories: HashMap<String, Decimal>,
     quantity_inventory: u32,
+    quantity_customer: u32,
+    quantity_form: u32,
 }
 
 impl Pool {
-    fn new(w: &str) -> Self {
+    fn new() -> Self {
         Self {
-            warehouse: Warehouse(w.into()),
+            codes: vec![],
             customers: vec![],
-            inventories: vec![],
-            invs: HashMap::new(),
+            inventories: HashMap::new(),
             quantity_customer: 0,
+            quantity_form: 0,
             quantity_inventory: 0,
         }
     }
-
-    fn add(&mut self, f: Form) {
-        if !self.customers.contains(&f.customer) {
-            println!("not contains");
-            self.customers.push(f.customer);
-            self.quantity_customer += 1;
-        }
-        f.inventories.iter().for_each(|v| {
-            let counter = self.invs.entry(v.0.clone()).or_insert(0);
-            *counter += v.1;
-        });
-        self.quantity_inventory = self.invs.values().sum();
-    }
 }
 
-use std::collections::HashMap;
-
-#[derive(Debug)]
-struct GroupPools {
+#[derive(Debug, Serialize, Clone)]
+pub struct Group {
     pools: HashMap<Region, HashMap<Warehouse, Pool>>,
+    registered: bool,
+    pub latest_saledelivery_indb_id: i32,
 }
 
-impl GroupPools {
-    fn new() -> Self {
+impl Group {
+    pub fn new() -> Self {
         Self {
             pools: HashMap::new(),
+            registered: false,
+            latest_saledelivery_indb_id: 0,
         }
     }
 
-    fn register_region(&mut self, r: &str) {
-        self.pools.insert(Region(r.into()), HashMap::new());
+    pub fn register_region(&mut self, r: Vec<&str>) {
+        if !self.pools.is_empty() {
+            return;
+        }
+        self.pools = r
+            .iter()
+            .map(|x| (Region(x.to_string()), HashMap::new()))
+            .collect();
     }
 
-    fn register_warehouse(&mut self, w: &str) {
+    pub fn register_warehouse(&mut self, w: Vec<&str>) {
+        if self.registered {
+            return;
+        }
         self.pools.iter_mut().for_each(|(_, v)| {
-            v.insert(Warehouse(w.into()), Pool::new(w));
+            *v = w
+                .iter()
+                .map(|x| (Warehouse(x.to_string()), Pool::new()))
+                .collect()
         });
+        self.registered = true
     }
 
-    fn add(&mut self, f: Form) {
-        if let Some(v) = self.pools.get_mut(&f.region) {
-            if let Some(p) = v.get_mut(&f.warehouse) {
-                p.add(f);
+    pub fn clear(&mut self) {
+        self.pools.clear();
+        self.registered = false;
+    }
+
+    pub fn add(&mut self, of: OrderForm) {
+        self.latest_saledelivery_indb_id = of.sd.id;
+
+        if let Some(r) = &of.sd.region {
+            if let Some(x) = self.pools.get_mut(r) {
+                if let Some(y) = x.get_mut(&of.sd.warehouse) {
+
+                    if !y.codes.contains(&of.sd.code) {
+                        y.codes.push(of.sd.code);
+                        y.quantity_form += 1;
+                    }
+                    
+
+                    if !y.customers.contains(&of.sd.customer) {
+                        y.customers.push(of.sd.customer);
+                        y.quantity_customer += 1;
+                    };
+
+                    of.inventories.iter().for_each(|sdb| {
+                        let count = y
+                            .inventories
+                            .entry(sdb.inventory.clone())
+                            .or_insert(0.into());
+                        *count += sdb.quantity;
+                    });
+                }
             }
         }
     }

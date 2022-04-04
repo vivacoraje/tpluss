@@ -1,6 +1,10 @@
-use super::AppState;
+use crate::config::AppState;
+use crate::config::PoolConnectionManager;
 
-pub async fn get_deliverer_by_code(state: &AppState, code: &str) -> anyhow::Result<Option<String>> {
+pub async fn get_deliverer_by_code(
+    pcm: &PoolConnectionManager,
+    code: &str,
+) -> anyhow::Result<Option<String>> {
     let sql = r#"
         SELECT 
             d.pubuserdefnvc1 
@@ -10,7 +14,7 @@ pub async fn get_deliverer_by_code(state: &AppState, code: &str) -> anyhow::Resu
         WHERE db.sourcevouchercode=(@P1)
     "#;
     let code = code.to_string();
-    let mut conn = state.mssql_pool.get().await?;
+    let mut conn = pcm.get().await?;
     // let d = conn
     //     .query(sql, &[&code])
     //     .await?
@@ -21,16 +25,10 @@ pub async fn get_deliverer_by_code(state: &AppState, code: &str) -> anyhow::Resu
     //     .and_then(|f| Some(String::from(f)));
     //     //.unwrap()
     //     //.to_string();
-    let d = match conn
-        .query(sql, &[&code])
-        .await?
-        .into_row()
-        .await? {
-            Some(r) => {
-                r.get::<&str, _>(0).and_then(|f| Some(String::from(f)))
-            },
-            None => None,
-        };
-    
+    let d = match conn.query(sql, &[&code]).await?.into_row().await? {
+        Some(r) => r.get::<&str, _>(0).and_then(|f| Some(String::from(f))),
+        None => None,
+    };
+
     Ok(d)
 }

@@ -1,38 +1,18 @@
-use bb8::Pool;
-use bb8_tiberius::ConnectionManager;
 use serde::Serialize;
-use tiberius::{AuthMethod, Config};
 
 pub mod distribution;
 pub mod order_form;
 pub mod sale_delivery;
+
 //pub mod state;
 
-#[derive(Clone)]
-pub struct AppState {
-    pub mssql_pool: Pool<ConnectionManager>,
-}
+#[derive(Debug, Serialize, Hash, PartialEq, Eq, Clone)]
+pub struct Warehouse(pub String);
 
-impl AppState {
-    pub async fn new() -> anyhow::Result<Self> {
-        let mut config = Config::new();
-        config.host("localhost");
-        config.port(1433);
-        config.authentication(AuthMethod::sql_server("SA", "kmvh5107288@"));
-        config.database("UFTData878266_000001");
-        config.trust_cert();
+#[derive(Debug, Serialize, PartialEq, Eq, Hash, Clone)]
+pub struct Region(pub String);
 
-        let mgr = ConnectionManager::new(config);
-        let mssql_pool = Pool::builder().max_size(3).build(mgr).await?;
-
-        Ok(Self { mssql_pool })
-    }
-}
-
-#[derive(Serialize)]
-pub struct Warehouse(String);
-
-#[derive(Serialize)]
+#[derive(Serialize, Debug, Clone, PartialEq)]
 #[serde(untagged)]
 pub enum Code {
     SaleDelivery(String),
@@ -43,6 +23,10 @@ pub enum SaleOut {
     NouOut, //  305,
 }
 
+// SA
+// 181 未审核
+// 189 审核
+
 #[derive(Serialize)]
 pub enum Executor {
     Spawn(String),
@@ -51,7 +35,7 @@ pub enum Executor {
 }
 
 #[derive(Serialize)]
-pub enum OrderFormStatus {
+pub enum FormStatus {
     Created(Executor),     // 已生单
     Distributed(Executor), // 已分配
     Delivery(Executor),    // 已送出

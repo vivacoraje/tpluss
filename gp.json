@@ -1,0 +1,71 @@
+{
+    "北区": {   
+        "七甸仓库": {
+            "codes": [],
+            "inventories": {
+                "a": 1,
+                "b": 2.5
+            },
+            "quantity_inventory": 3.5,
+            "quantity_customer": 2,
+            "quantity_form": 2
+        },
+        "王大桥33号仓库": {
+            "codes": [],
+            "inventories": {
+                "a": 1,
+                "b": 2.5
+            },
+            "quantity_inventory": 3.5,
+            "quantity_customer": 2,
+            "quantity_form": 2
+        }
+    },
+    "西区": {
+        "七甸仓库": {
+            "codes": [],
+            "inventories": {
+                "a": 1,
+                "b": 2.5
+            },
+            "quantity_inventory": 3.5,
+            "quantity_customer": 2,
+            "quantity_form": 2
+        },
+        "王大桥33号仓库": {
+            "codes": [],
+            "inventories": {
+                "a": 1,
+                "b": 2.5
+            },
+            "quantity_inventory": 3.5,
+            "quantity_customer": 2,
+            "quantity_form": 2
+        }
+    },
+    "南区": {
+        "七甸仓库": {
+            "codes": [],
+            "inventories": {
+                "a": 1,
+                "b": 2.5
+            },
+            "quantity_inventory": 3.5,
+            "quantity_customer": 2,
+            "quantity_form": 2
+        },
+        "王大桥33号仓库": {
+            "codes": [],
+            "inventories": {
+                "a": 1,
+                "b": 2.5
+            },
+            "quantity_inventory": 3.5,
+            "quantity_customer": 2,
+            "quantity_form": 2
+        }
+    },
+    "quantity_inventory": 10.5,
+    "quantity_customer": 6,
+    "quantity_form": 6
+}
