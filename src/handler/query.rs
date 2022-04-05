@@ -1,5 +1,6 @@
 use axum::extract::{Extension, Path};
 use axum::Json;
+use axum::{http::StatusCode, response::IntoResponse};
 
 use serde_json::Value;
 
@@ -8,15 +9,16 @@ use crate::model::sale_delivery::OrderForm;
 use crate::model::sale_delivery::OrderFormStatus;
 use crate::model::sale_delivery::SaleDelivery;
 use crate::model::Code;
-use crate::utils::diff;
+use crate::utils::{diff, voucherdate};
 
 use crate::config::AppState;
 
 pub async fn count(Extension(state): Extension<AppState>) -> Json<Value> {
-    let c = SaleDelivery::get_count_by_diff(&state.mssql_pool, 0)
+    let c = SaleDelivery::get_count_by_diff(&state.mssql_pool, diff())
         .await
         .unwrap();
     Json(serde_json::json!({
+        "voucherdate": voucherdate(),
         "count": c,
     }))
 }
@@ -69,16 +71,15 @@ pub async fn undistributed_codes(Extension(state): Extension<AppState>) -> Json<
     Json(serde_json::json!(codes))
 }
 
-pub async fn pools(Extension(mut state): Extension<AppState>) -> Json<Value> {
+pub async fn pools_update(Extension(mut state): Extension<AppState>) -> impl IntoResponse {
     let p = &mut state.group;
 
-    let codes = SaleDelivery::get_sale_deliveries_codes(
-        &state.mssql_pool,
-        -1,
-        p.read().unwrap().latest_saledelivery_indb_id,
-    )
-    .await
-    .unwrap();
+    //let latest_id = p.read().unwrap().latest_saledelivery_indb_id;
+    let latest_id = 0;
+
+    let codes = SaleDelivery::get_sale_deliveries_codes(&state.mssql_pool, diff(), latest_id)
+        .await
+        .unwrap();
 
     for code in codes {
         let of = OrderForm::get_by_code(&state.mssql_pool, &code)
@@ -87,7 +88,20 @@ pub async fn pools(Extension(mut state): Extension<AppState>) -> Json<Value> {
         p.write().unwrap().add(of);
     }
 
-    Json(serde_json::json!(p.read().unwrap().to_owned()))
+    StatusCode::OK
+    //Json(serde_json::json!(p.read().unwrap().to_owned()))
+}
+
+pub async fn pools(Extension(state): Extension<AppState>) -> Json<Value> {
+    Json(serde_json::json!(state.group.read().unwrap().to_owned()))
+}
+
+pub async fn pools_reset(Extension(state): Extension<AppState>) -> impl IntoResponse {
+    // let mut p = state.group;
+    // p.write().unwrap().register_region(vec!["北区", "南区", "西区"]);
+    // group.register_warehouse(vec!["七甸仓库", "王大桥33号仓库"]);
+    // state.group.write().unwrap().clear();
+    StatusCode::OK
 }
 
 pub async fn codes(Extension(state): Extension<AppState>) -> Json<Value> {

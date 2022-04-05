@@ -4,6 +4,7 @@ use tiberius::numeric::Decimal;
 
 use crate::model::sale_delivery::OrderForm;
 use crate::model::{Code, Region, Warehouse};
+use crate::utils::voucherdate;
 
 #[derive(Debug, Serialize, Clone)]
 struct Pool {
@@ -33,6 +34,8 @@ pub struct Group {
     pools: HashMap<Region, HashMap<Warehouse, Pool>>,
     registered: bool,
     pub latest_saledelivery_indb_id: i32,
+    voucherdate: String,
+    none_region_customers: Vec<String>,
 }
 
 impl Group {
@@ -41,6 +44,8 @@ impl Group {
             pools: HashMap::new(),
             registered: false,
             latest_saledelivery_indb_id: 0,
+            voucherdate: voucherdate(),
+            none_region_customers: vec![],
         }
     }
 
@@ -67,23 +72,25 @@ impl Group {
         self.registered = true
     }
 
-    pub fn clear(&mut self) {
+    pub fn reset(&mut self) {
         self.pools.clear();
         self.registered = false;
+        self.latest_saledelivery_indb_id = 0;
+        self.voucherdate = voucherdate();
     }
 
     pub fn add(&mut self, of: OrderForm) {
-        self.latest_saledelivery_indb_id = of.sd.id;
+        //self.latest_saledelivery_indb_id = of.sd.id;
+        println!("{:?}-{:?}", &of.sd.code, &of.sd.region);
 
         if let Some(r) = &of.sd.region {
             if let Some(x) = self.pools.get_mut(r) {
                 if let Some(y) = x.get_mut(&of.sd.warehouse) {
-
+                    println!("{:?}", &of.sd.code);
                     if !y.codes.contains(&of.sd.code) {
                         y.codes.push(of.sd.code);
                         y.quantity_form += 1;
                     }
-                    
 
                     if !y.customers.contains(&of.sd.customer) {
                         y.customers.push(of.sd.customer);
@@ -99,6 +106,8 @@ impl Group {
                     });
                 }
             }
+        } else {
+            self.none_region_customers.push(of.sd.customer);
         }
     }
 }

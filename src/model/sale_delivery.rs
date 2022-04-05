@@ -13,7 +13,8 @@ pub struct SaleDeliveryB {
     pub inventory: String,
     pub quantity: Decimal,
     composition_quantity: String,
-    unit_exchange_rate: Decimal,
+    unit_exchange_rate: Option<Decimal>,
+    idunit: i32,
 }
 
 impl SaleDeliveryB {
@@ -24,7 +25,20 @@ impl SaleDeliveryB {
             inventory: r.get::<&str, _>(2).unwrap().into(),
             quantity: r.get::<Decimal, _>(3).unwrap().round_dp(3),
             composition_quantity: r.get::<&str, _>(4).unwrap().into(),
-            unit_exchange_rate: r.get::<Decimal, _>(5).unwrap().round_dp(0),
+            unit_exchange_rate: r.get::<Decimal, _>(5).and_then(|u| Some(u.round_dp(0))),
+            idunit: r.get::<i32, _>(6).unwrap(),
+        }
+    }
+
+    fn unit_exchange(&self) -> Self {
+        Self {
+            id: self.id,
+            id_sale_delivery_dto: self.id_sale_delivery_dto,
+            inventory: self.inventory,
+            quantity: self.quantity / self.unit_exchange_rate.unwrap(),
+            unit_exchange_rate: self.unit_exchange_rate,
+            idunit: self.idunit,
+            composition_quantity: self.composition_quantity,
         }
     }
 
@@ -34,7 +48,7 @@ impl SaleDeliveryB {
     ) -> anyhow::Result<Vec<SaleDeliveryB>> {
         let sql = r#"
             SELECT 
-                sb.id, idSaleDeliveryDTO, iv.name, quantity, compositionQuantity, unitExchangeRate 
+                sb.id, idSaleDeliveryDTO, iv.name, quantity, compositionQuantity, unitExchangeRate, sb.idunit
             FROM 
                 SA_SaleDelivery_b AS sb 
                 JOIN AA_Inventory AS iv ON sb.idinventory=iv.id 
@@ -49,7 +63,14 @@ impl SaleDeliveryB {
             .into_first_result()
             .await?
             .iter()
-            .map(|r| Self::from_row(r))
+            .map(|r| {
+                
+                let s = Self::from_row(r);
+                if s.idunit == 16 {
+                    Self::unit_exchange(&self)
+                };
+                s
+            })
             .collect::<Vec<SaleDeliveryB>>();
 
         Ok(items)
@@ -95,10 +116,12 @@ impl SaleDelivery {
             voucher_date: r.get::<NaiveDateTime, _>(12).unwrap(),
             created_time: r.get::<NaiveDateTime, _>(13).unwrap(),
             updated_time: r.get::<NaiveDateTime, _>(14).unwrap(),
-            clerk: r.get::<&str, _>(15).and_then(|p| Some(String::from(p))),
+            clerk: Some("无".into()),
+            region: Some(Region::default()),
+            /*clerk: r.get::<&str, _>(15).and_then(|p| Some(String::from(p))),
             region: r
                 .get::<&str, _>(16)
-                .and_then(|p| Some(Region(String::from(p)))),
+                .and_then(|p| Some(Region(String::from(p)))),*/
         }
     }
 
@@ -169,7 +192,7 @@ impl SaleDelivery {
 
         let sql = r#"
         SELECT 
-            id, code
+            code
         FROM 
             SA_SaleDelivery
         WHERE DateDiff(dd, voucherdate, getdate())=(@P1) AND idbusinesstype=65 AND voucherstate = 189 AND (id > (@P2))
@@ -237,7 +260,37 @@ impl SaleDelivery {
         let code = code.to_string();
         let r = conn.query(sql, &[&code]).await?.into_row().await?.unwrap();
 
-        Ok(Self::from_row(&r))
+        let mut sa = Self::from_row(&r);
+
+        let sql = r"
+            SELECT ad.name 
+            FROM AA_Partner AS ap JOIN AA_District AS ad ON ap.iddistrict = ad.id 
+            WHERE ap.name = (@P1)
+        ";
+
+        let region = conn
+            .query(sql, &[&sa.customer])
+            .await?
+            .into_row()
+            .await?
+            .and_then(|r| Some(Region(r.get::<&str, _>(0).unwrap().into())));
+        sa.region = region;
+
+        let sql = r"
+            SELECT ap2.name 
+            FROM AA_Partner AS ap JOIN AA_Person AS ap2 ON ap.idsaleman = ap2.id 
+            WHERE ap.name = (@P1);
+        ";
+
+        let clerk = conn
+            .query(sql, &[&sa.customer])
+            .await?
+            .into_row()
+            .await?
+            .and_then(|c| Some(c.get::<&str, _>(0).unwrap().into()));
+        sa.clerk = clerk;
+
+        Ok(sa)
     }
     pub async fn get_sale_delivery_by_code2(
         pcm: &PoolConnectionManager,
@@ -306,7 +359,7 @@ pub struct OrderForm {
 
 impl OrderForm {
     pub async fn get_by_code(pcm: &PoolConnectionManager, code: &str) -> anyhow::Result<OrderForm> {
-        let sd = SaleDelivery::get_sale_delivery_by_code2(pcm, code).await?;
+        let sd = SaleDelivery::get_sale_delivery_by_code(pcm, code).await?;
         let inventories = SaleDeliveryB::get_items_by_id(pcm, sd.id).await?;
         Ok(Self { sd, inventories })
     }

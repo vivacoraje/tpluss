@@ -1,6 +1,9 @@
 use std::{net::SocketAddr, str::FromStr};
 
-use axum::{routing::get, AddExtensionLayer, Router};
+use axum::{
+    routing::{delete, get},
+    AddExtensionLayer, Router,
+};
 
 mod config;
 mod distribution;
@@ -26,11 +29,14 @@ async fn main() {
             get(handler::query::order_form_status),
         )
         .route("/undistributed", get(handler::query::undistributed_codes))
-        .route("/pools", get(handler::query::pools))
+        .route(
+            "/pools",
+            get(handler::query::pools)
+                .delete(handler::query::pools_reset)
+                .patch(handler::query::pools_update),
+        )
         .route("/codes", get(handler::query::codes))
         .layer(AddExtensionLayer::new(appstate));
-    //.layer(AddExtensionLayer::new(shared_conn_pool))
-    //.layer(AddExtensionLayer::new(shared_group));
 
     let addr = SocketAddr::from_str("0.0.0.0:3000").unwrap();
 

@@ -12,6 +12,12 @@ pub struct Warehouse(pub String);
 #[derive(Debug, Serialize, PartialEq, Eq, Hash, Clone)]
 pub struct Region(pub String);
 
+impl Default for Region {
+    fn default() -> Self {
+        Self("无".into())
+    }
+}
+
 #[derive(Serialize, Debug, Clone, PartialEq)]
 #[serde(untagged)]
 pub enum Code {
