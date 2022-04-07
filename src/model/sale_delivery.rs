@@ -30,16 +30,8 @@ impl SaleDeliveryB {
         }
     }
 
-    fn unit_exchange(&self) -> Self {
-        Self {
-            id: self.id,
-            id_sale_delivery_dto: self.id_sale_delivery_dto,
-            inventory: self.inventory,
-            quantity: self.quantity / self.unit_exchange_rate.unwrap(),
-            unit_exchange_rate: self.unit_exchange_rate,
-            idunit: self.idunit,
-            composition_quantity: self.composition_quantity,
-        }
+    fn unit_exchange(&mut self) {
+        self.quantity = (self.quantity / self.unit_exchange_rate.unwrap()).round_dp(3);
     }
 
     pub async fn get_items_by_id(
@@ -65,9 +57,9 @@ impl SaleDeliveryB {
             .iter()
             .map(|r| {
                 
-                let s = Self::from_row(r);
+                let mut s = Self::from_row(r);
                 if s.idunit == 16 {
-                    Self::unit_exchange(&self)
+                    s.unit_exchange();
                 };
                 s
             })

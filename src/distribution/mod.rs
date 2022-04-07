@@ -81,12 +81,10 @@ impl Group {
 
     pub fn add(&mut self, of: OrderForm) {
         //self.latest_saledelivery_indb_id = of.sd.id;
-        println!("{:?}-{:?}", &of.sd.code, &of.sd.region);
 
         if let Some(r) = &of.sd.region {
             if let Some(x) = self.pools.get_mut(r) {
                 if let Some(y) = x.get_mut(&of.sd.warehouse) {
-                    println!("{:?}", &of.sd.code);
                     if !y.codes.contains(&of.sd.code) {
                         y.codes.push(of.sd.code);
                         y.quantity_form += 1;
