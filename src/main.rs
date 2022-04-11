@@ -1,7 +1,7 @@
 use std::{net::SocketAddr, str::FromStr};
 
 use axum::{
-    routing::{delete, get},
+    routing::{delete, get, post},
     AddExtensionLayer, Router,
 };
 
@@ -36,6 +36,7 @@ async fn main() {
                 .patch(handler::query::pools_update),
         )
         .route("/codes", get(handler::query::codes))
+        .route("/delivery/deliver", post(handler::delivery::hello))
         .layer(AddExtensionLayer::new(appstate));
 
     let addr = SocketAddr::from_str("0.0.0.0:3000").unwrap();

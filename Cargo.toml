@@ -21,3 +21,5 @@ serde_json = "1.0.76"
 chrono = { version = "0.4.19", features = ["serde"] }
 crossbeam = "*"
 crossbeam-channel = "*"
+rusqlite = "0.24.2"
+bb8-rusqlite = "0.1.0"

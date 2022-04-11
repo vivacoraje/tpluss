@@ -3,6 +3,7 @@ use serde::Serialize;
 pub mod distribution;
 pub mod order_form;
 pub mod sale_delivery;
+pub mod delivery;
 
 //pub mod state;
 
