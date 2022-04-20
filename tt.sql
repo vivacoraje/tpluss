@@ -6,6 +6,13 @@ select code, sourcevouchercode, isnomodify, exchangerate, memo, maker, auditor, 
 
 select top 10 * from DI_Distribution_b where idDistributionDTO=192723;
 
+            SELECT 
+               sb.quantity, sb.quantity2, sb.idinventory, sb.idbaseunit, sb.idsubunit, sb.idunit, sb.idunit2, imu.idunit1, imu.unit1Name
+            FROM 
+                (SA_SaleDelivery_b AS sb 
+                JOIN AA_Inventory AS iv ON sb.idinventory=iv.id) join AA_Inventory_MultiUnit as imu ON iv.id=imu.IDInventory
+            WHERE idSaleDeliveryDTO= 637460
+
 /*UPDATE SA_SaleDelivery SET PrintCount = 1 WHERE code = 'SA.2022.03.18.0054';
 
 CREATE TABLE 'deliverer' (
